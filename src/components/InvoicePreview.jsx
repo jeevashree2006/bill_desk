@@ -337,15 +337,22 @@ const InvoicePreview = ({ invoice }) => {
         }
 
         @media (max-width: 768px) {
+            .preview-header {
+                justify-content: center;
+                padding: 10px;
+                margin-bottom: 1rem;
+            }
             .invoice-container {
                 padding: 10px;
-                display: block;
+                display: flex;
+                justify-content: center;
                 overflow-x: hidden;
             }
             .invoice-box {
                 transform: scale(0.42);
-                transform-origin: top left;
+                transform-origin: top center;
                 margin-bottom: -480px;
+                min-width: 800px;
             }
         }
       `}</style>
