@@ -261,7 +261,14 @@ body {
 .view-actions {
   display: flex;
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+  .view-actions {
+    justify-content: center;
+    margin-bottom: 1.5rem;
+  }
 }
 
 /* Mobile View Adjustments */
@@ -279,7 +286,8 @@ body {
 
   .main-content {
     margin-left: 0;
-    padding: 1rem;
+    padding: 1rem 0.5rem;
+    overflow-x: hidden;
   }
 
   .top-bar {

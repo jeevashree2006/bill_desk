@@ -340,19 +340,23 @@ const InvoicePreview = ({ invoice }) => {
             .preview-header {
                 justify-content: center;
                 padding: 10px;
-                margin-bottom: 1rem;
+                margin-bottom: 2rem;
             }
             .invoice-container {
-                padding: 10px;
+                padding: 0;
                 display: flex;
                 justify-content: center;
-                overflow-x: hidden;
+                align-items: flex-start;
+                min-height: 520px;
+                width: 100%;
+                overflow: hidden;
             }
             .invoice-box {
-                transform: scale(0.42);
+                transform: scale(0.44);
                 transform-origin: top center;
-                margin-bottom: -480px;
-                min-width: 800px;
+                margin: 0;
+                flex-shrink: 0;
+                /* No negative margin here, we handle container height */
             }
         }
       `}</style>
