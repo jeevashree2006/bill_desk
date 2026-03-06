@@ -1,16 +1,16 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { getDatabase } from "firebase/database";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyCvELAwb7PlrAwaCpWzxqcDN0jjS1N0nTo",
-    authDomain: "bill-desk-5f07c.firebaseapp.com",
-    databaseURL: "https://bill-desk-5f07c-default-rtdb.firebaseio.com",
-    projectId: "bill-desk-5f07c",
-    storageBucket: "bill-desk-5f07c.firebasestorage.app",
-    messagingSenderId: "627201462404",
-    appId: "1:627201462404:web:33b9c69adcb6ce825972d1",
-    measurementId: "G-B03VMMRSWE"
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID,
+    measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+export const db = getDatabase(app);

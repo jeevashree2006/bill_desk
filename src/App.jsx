@@ -127,12 +127,10 @@ function App() {
           )}
           {(activeTab === 'view' || activeTab === 'view_download') && (
             <div className="view-container">
-              <div className="view-actions">
-                <button className="btn-secondary" onClick={() => setActiveTab('dashboard')}>Back</button>
-              </div>
               <InvoicePreview
                 invoice={currentInvoice}
                 autoDownload={activeTab === 'view_download'}
+                onBack={() => setActiveTab('dashboard')}
               />
             </div>
           )}

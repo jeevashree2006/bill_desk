@@ -23,6 +23,7 @@ body {
   background-color: var(--bg-main);
   color: var(--text-main);
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 .app-container {
@@ -207,6 +208,13 @@ body {
   border-radius: 8px;
   font-size: 1rem;
   transition: border-color 0.2s;
+  background-color: white;
+  color: var(--text-main);
+  box-sizing: border-box;
+  margin: 0;
+  font-family: inherit;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .form-input:focus {
@@ -341,10 +349,12 @@ body {
     padding: 1rem 1rem 0 1rem;
     overflow-x: hidden;
     height: 100vh;
+    width: 100%;
   }
   .content-area {
     padding-bottom: 1rem;
     padding-right: 0.25rem;
+    overflow-x: hidden;
   }
 
   .top-bar {

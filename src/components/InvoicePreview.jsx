@@ -1,10 +1,13 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import { Download } from 'lucide-react';
+import { Download, ZoomIn, ZoomOut } from 'lucide-react';
 
-const InvoicePreview = ({ invoice, autoDownload }) => {
+const InvoicePreview = ({ invoice, autoDownload, onBack }) => {
     const invoiceRef = useRef();
+    const [zoomLvl, setZoomLvl] = useState(() => {
+        return window.innerWidth <= 768 ? Math.max(0.2, (window.innerWidth - 30) / 800) : 1;
+    });
 
     useEffect(() => {
         if (autoDownload && invoiceRef.current) {
@@ -16,11 +19,21 @@ const InvoicePreview = ({ invoice, autoDownload }) => {
 
     const handleDownload = async () => {
         const element = invoiceRef.current;
+        const container = element.parentElement;
+        const originalZoom = container.style.getPropertyValue('--zoom');
+
+        // Ensure PDF captures accurately without zoom distortions
+        container.style.setProperty('--zoom', '1');
+        await new Promise(resolve => setTimeout(resolve, 100)); // allow reflow
+
         const canvas = await html2canvas(element, {
             scale: 2,
             logging: false,
             useCORS: true
         });
+
+        // Restore zoom instantly
+        container.style.setProperty('--zoom', originalZoom);
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF('p', 'mm', 'a4');
         const imgProps = pdf.getImageProperties(imgData);
@@ -57,12 +70,25 @@ const InvoicePreview = ({ invoice, autoDownload }) => {
     return (
         <div>
             <div className="preview-header">
-                <button className="btn-primary" onClick={handleDownload}>
+                {onBack && (
+                    <button className="btn-secondary" onClick={onBack}>
+                        Back
+                    </button>
+                )}
+                <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', marginRight: '15px' }}>
+                    <button type="button" className="btn-secondary" style={{ padding: '0 8px' }} onClick={() => setZoomLvl(z => Math.max(z - 0.2, 0.4))} title="Zoom Out">
+                        <ZoomOut size={18} />
+                    </button>
+                    <button type="button" className="btn-secondary" style={{ padding: '0 8px' }} onClick={() => setZoomLvl(z => Math.min(z + 0.2, 3))} title="Zoom In">
+                        <ZoomIn size={18} />
+                    </button>
+                </div>
+                <button className="btn-primary" onClick={handleDownload} style={{ margin: 0 }}>
                     <Download size={18} /> Download PDF
                 </button>
             </div>
 
-            <div className="invoice-container" ref={invoiceRef}>
+            <div className="invoice-container" style={{ '--zoom': zoomLvl }}>
                 <div className="invoice-box">
                     {/* Header */}
                     <div className="header-section">
@@ -199,13 +225,15 @@ const InvoicePreview = ({ invoice, autoDownload }) => {
         .preview-header {
             margin-bottom: 2rem;
             display: flex;
-            justify-content: flex-end;
+            justify-content: flex-start;
+            gap: 15px;
         }
         .invoice-container {
             background: #fff;
             padding: 20px;
             display: flex;
             justify-content: center;
+            overflow: auto;
         }
         .invoice-box {
             width: 800px;
@@ -213,6 +241,8 @@ const InvoicePreview = ({ invoice, autoDownload }) => {
             font-family: 'Times New Roman', Times, serif;
             color: black;
             background: white;
+            zoom: var(--zoom, 1);
+            transition: zoom 0.2s ease;
         }
         .header-section {
             text-align: center;
@@ -346,25 +376,21 @@ const InvoicePreview = ({ invoice, autoDownload }) => {
 
         @media (max-width: 768px) {
             .preview-header {
-                justify-content: center;
-                padding: 10px;
-                margin-bottom: 2rem;
+                justify-content: flex-start;
+                padding: 10px 0;
+                margin-bottom: 1rem;
+                gap: 15px;
+                flex-wrap: wrap;
             }
             .invoice-container {
-                padding: 0;
-                display: flex;
-                justify-content: center;
-                align-items: flex-start;
-                min-height: 520px;
+                padding: 2px;
+                display: block;
                 width: 100%;
-                overflow: hidden;
+                overflow: auto;
+                margin-bottom: 2rem;
             }
             .invoice-box {
-                transform: scale(0.44);
-                transform-origin: top center;
-                margin: 0;
-                flex-shrink: 0;
-                /* No negative margin here, we handle container height */
+                margin: 0 auto;
             }
         }
       `}</style>
