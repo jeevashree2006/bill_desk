@@ -3,6 +3,8 @@ import InvoiceForm from './components/InvoiceForm';
 import InvoicePreview from './components/InvoicePreview';
 import Dashboard from './components/Dashboard';
 import { Plus, LayoutDashboard, FileText } from 'lucide-react';
+import { ref, set, get, child, remove } from 'firebase/database';
+import { db } from './firebase';
 import './App.css';
 
 function App() {
@@ -13,24 +15,52 @@ function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
-    const savedInvoices = localStorage.getItem('invoices');
-    if (savedInvoices) {
-      setInvoices(JSON.parse(savedInvoices));
-    }
+    const fetchInvoices = async () => {
+      try {
+        const dbRef = ref(db);
+        const snapshot = await get(child(dbRef, `invoices`));
+        if (snapshot.exists()) {
+          const invoicesData = Object.values(snapshot.val());
+          invoicesData.sort((a, b) => new Date(b.date) - new Date(a.date));
+          setInvoices(invoicesData);
+        } else {
+          setInvoices([]);
+        }
+      } catch (error) {
+        console.error("Error fetching invoices: ", error);
+        // Fallback to local storage if fail just in case
+        const savedInvoices = localStorage.getItem('invoices');
+        if (savedInvoices) {
+          setInvoices(JSON.parse(savedInvoices));
+        }
+      }
+    };
+    fetchInvoices();
   }, []);
 
-  const saveInvoice = (invoiceData) => {
-    const newInvoices = [invoiceData, ...invoices];
-    setInvoices(newInvoices);
-    localStorage.setItem('invoices', JSON.stringify(newInvoices));
-    setActiveTab('dashboard');
-    setIsSidebarOpen(false);
+  const saveInvoice = async (invoiceData) => {
+    try {
+      await set(ref(db, 'invoices/' + invoiceData.id), invoiceData);
+      const newInvoices = [invoiceData, ...invoices];
+      setInvoices(newInvoices);
+      localStorage.setItem('invoices', JSON.stringify(newInvoices));
+      setCurrentInvoice(invoiceData);
+      setActiveTab('view_download');
+      setIsSidebarOpen(false);
+    } catch (e) {
+      console.error("Error saving invoice: ", e);
+    }
   };
 
-  const deleteInvoice = (id) => {
-    const newInvoices = invoices.filter(inv => inv.id !== id);
-    setInvoices(newInvoices);
-    localStorage.setItem('invoices', JSON.stringify(newInvoices));
+  const deleteInvoice = async (id) => {
+    try {
+      await remove(ref(db, 'invoices/' + id));
+      const newInvoices = invoices.filter(inv => inv.id !== id);
+      setInvoices(newInvoices);
+      localStorage.setItem('invoices', JSON.stringify(newInvoices));
+    } catch (e) {
+      console.error("Error deleting invoice: ", e);
+    }
   };
 
   const handleCreateNew = () => {
@@ -95,12 +125,15 @@ function App() {
           {activeTab === 'create' && (
             <InvoiceForm onSave={saveInvoice} onCancel={() => setActiveTab('dashboard')} />
           )}
-          {activeTab === 'view' && (
+          {(activeTab === 'view' || activeTab === 'view_download') && (
             <div className="view-container">
               <div className="view-actions">
                 <button className="btn-secondary" onClick={() => setActiveTab('dashboard')}>Back</button>
               </div>
-              <InvoicePreview invoice={currentInvoice} />
+              <InvoicePreview
+                invoice={currentInvoice}
+                autoDownload={activeTab === 'view_download'}
+              />
             </div>
           )}
         </section>

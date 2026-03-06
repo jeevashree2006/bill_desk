@@ -2,7 +2,7 @@
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
   --bg-main: #f8fafc;
-  --bg-sidebar: #ffffff;
+  --bg-sidebar: #000000;
   --text-main: #1e293b;
   --text-muted: #64748b;
   --border-color: #e2e8f0;
@@ -53,7 +53,7 @@ body {
 .sidebar-header h1 {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--text-main);
+  color: #ffffff;
 }
 
 .sidebar-menu {
@@ -67,19 +67,19 @@ body {
   padding: 0.875rem 1rem;
   border-radius: var(--radius);
   cursor: pointer;
-  color: var(--text-muted);
+  color: #94a3b8;
   transition: all 0.2s ease;
   margin-bottom: 0.5rem;
 }
 
 .sidebar-menu li:hover {
-  background: #f1f5f9;
-  color: var(--text-main);
+  background: #1e293b;
+  color: #ffffff;
 }
 
 .sidebar-menu li.active {
-  background: #eff6ff;
-  color: var(--primary);
+  background: var(--primary);
+  color: #ffffff;
   font-weight: 600;
 }
 
@@ -87,8 +87,33 @@ body {
 .main-content {
   flex: 1;
   margin-left: var(--sidebar-width);
-  padding: 2rem 3rem;
+  padding: 2rem 3rem 0 3rem;
   max-width: 1400px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.content-area {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 2rem;
+  /* Add customized scrollbar */
+  scrollbar-width: thin;
+  padding-right: 0.5rem;
+}
+
+.content-area::-webkit-scrollbar {
+  width: 6px;
+}
+
+.content-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.content-area::-webkit-scrollbar-thumb {
+  background-color: var(--border-color);
+  border-radius: 20px;
 }
 
 .top-bar {
@@ -108,11 +133,13 @@ body {
   background: var(--primary);
   color: white;
   border: none;
-  padding: 0.75rem 1.5rem;
+  padding: 0 1rem;
+  height: 35px;
   border-radius: 8px;
   font-weight: 600;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   cursor: pointer;
   transition: background 0.2s;
@@ -126,9 +153,14 @@ body {
   background: white;
   color: var(--text-main);
   border: 1px solid var(--border-color);
-  padding: 0.75rem 1.5rem;
+  padding: 0 1rem;
+  height: 35px;
   border-radius: 8px;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   cursor: pointer;
 }
 
@@ -219,16 +251,36 @@ body {
 
 .invoice-card {
   background: white;
-  padding: 1.5rem;
-  border-radius: var(--radius);
-  border: 1px solid var(--border-color);
-  transition: transform 0.2s, box-shadow 0.2s;
+  padding: 1.75rem;
+  border-radius: 16px;
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -2px rgba(0, 0, 0, 0.02);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.invoice-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, #2563eb, #60a5fa);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .invoice-card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+  border-color: transparent;
+}
+
+.invoice-card:hover::before {
+  opacity: 1;
 }
 
 .invoice-card-header {
@@ -286,8 +338,13 @@ body {
 
   .main-content {
     margin-left: 0;
-    padding: 1rem 0.5rem;
+    padding: 1rem 1rem 0 1rem;
     overflow-x: hidden;
+    height: 100vh;
+  }
+  .content-area {
+    padding-bottom: 1rem;
+    padding-right: 0.25rem;
   }
 
   .top-bar {
@@ -304,9 +361,38 @@ body {
     padding: 1.5rem;
   }
 
-  .items-table {
+  .items-table thead {
+    display: none;
+  }
+  .items-table, .items-table tbody, .items-table tr, .items-table td {
     display: block;
-    overflow-x: auto;
+    width: 100% !important;
+  }
+  .items-table tr {
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 1rem;
+    background: #f8fafc;
+  }
+  .items-table td {
+    border: none;
+    padding: 0.5rem 0;
+    text-align: right;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .items-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+  .items-table td input {
+    width: 60%;
+    margin-left: 1rem;
   }
 
   .mobile-menu-btn {
@@ -321,7 +407,7 @@ body {
   }
 
   .form-footer {
-    flex-direction: column-reverse;
+    flex-direction: column;
     align-items: stretch !important;
   }
 

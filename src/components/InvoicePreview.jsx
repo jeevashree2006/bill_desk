@@ -1,10 +1,18 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { Download } from 'lucide-react';
 
-const InvoicePreview = ({ invoice }) => {
+const InvoicePreview = ({ invoice, autoDownload }) => {
     const invoiceRef = useRef();
+
+    useEffect(() => {
+        if (autoDownload && invoiceRef.current) {
+            setTimeout(() => {
+                handleDownload();
+            }, 300);
+        }
+    }, [autoDownload, invoice]);
 
     const handleDownload = async () => {
         const element = invoiceRef.current;
@@ -172,7 +180,7 @@ const InvoicePreview = ({ invoice }) => {
                     </div>
 
                     {/* Spacer */}
-                    <div style={{ height: '100px', borderLeft: '2px solid black', borderRight: '2px solid black' }}></div>
+                    <div style={{ height: '100px', borderLeft: '1px solid black', borderRight: '1px solid black' }}></div>
 
                     {/* Declaration and Signatory */}
                     <div className="footer-pdf-section">
@@ -201,7 +209,7 @@ const InvoicePreview = ({ invoice }) => {
         }
         .invoice-box {
             width: 800px;
-            border: 2.5px solid black;
+            border: 1px solid black;
             font-family: 'Times New Roman', Times, serif;
             color: black;
             background: white;
@@ -209,7 +217,7 @@ const InvoicePreview = ({ invoice }) => {
         .header-section {
             text-align: center;
             padding: 10px;
-            border-bottom: 2.5px solid black;
+            border-bottom: 1px solid black;
         }
         .company-name {
             font-size: 28px;
@@ -229,12 +237,12 @@ const InvoicePreview = ({ invoice }) => {
         }
         .info-section {
             display: flex;
-            border-bottom: 2.5px solid black;
+            border-bottom: 1px solid black;
             min-height: 150px;
         }
         .info-left {
             flex: 1;
-            border-right: 2.5px solid black;
+            border-right: 1px solid black;
         }
         .info-right {
             flex: 1;
@@ -245,7 +253,7 @@ const InvoicePreview = ({ invoice }) => {
             display: block;
         }
         .bold-border-bottom {
-            border-bottom: 2.5px solid black;
+            border-bottom: 1px solid black;
         }
         .info-content {
             padding: 5px 10px;
@@ -258,7 +266,7 @@ const InvoicePreview = ({ invoice }) => {
         .info-value {
             padding: 2px 8px;
             font-size: 14px;
-            border-left: 2.5px solid black;
+            border-left: 1px solid black;
         }
         .flex-2 { flex: 2.5; }
         .flex-1 { flex: 1; }
@@ -272,13 +280,13 @@ const InvoicePreview = ({ invoice }) => {
             border-collapse: collapse;
         }
         .pdf-table th {
-            border-bottom: 2.5px solid black;
-            border-right: 2.5px solid black;
+            border-bottom: 1px solid black;
+            border-right: 1px solid black;
             padding: 5px;
             font-size: 14px;
         }
         .pdf-table td {
-            border-right: 2.5px solid black;
+            border-right: 1px solid black;
             padding: 2px 8px;
             font-size: 13px;
             vertical-align: top;
@@ -292,8 +300,8 @@ const InvoicePreview = ({ invoice }) => {
         .gst-small { font-size: 11px; }
 
         .total-words-section {
-            border-top: 2.5px solid black;
-            border-bottom: 2.5px solid black;
+            border-top: 1px solid black;
+            border-bottom: 1px solid black;
         }
         .invoice-value-line {
             padding: 5px 10px;
@@ -308,7 +316,7 @@ const InvoicePreview = ({ invoice }) => {
             border-collapse: collapse;
         }
         .hsn-table th, .hsn-table td {
-            border: 2.5px solid black;
+            border: 1px solid black;
             padding: 4px;
             font-size: 12px;
         }
@@ -316,12 +324,12 @@ const InvoicePreview = ({ invoice }) => {
         
         .footer-pdf-section {
             display: flex;
-            border-top: 2.5px solid black;
+            border-top: 1px solid black;
             min-height: 100px;
         }
         .declaration {
             flex: 1;
-            border-right: 2.5px solid black;
+            border-right: 1px solid black;
             padding: 5px 10px;
             font-size: 12px;
         }

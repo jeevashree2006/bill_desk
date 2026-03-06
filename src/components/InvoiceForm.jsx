@@ -174,7 +174,7 @@ const InvoiceForm = ({ onSave, onCancel }) => {
                     <tbody>
                         {invoice.items.map((item) => (
                             <tr key={item.id}>
-                                <td>
+                                <td data-label="Particulars">
                                     <input
                                         type="text"
                                         className="form-input small"
@@ -182,7 +182,7 @@ const InvoiceForm = ({ onSave, onCancel }) => {
                                         onChange={(e) => handleItemChange(item.id, 'particulars', e.target.value)}
                                     />
                                 </td>
-                                <td>
+                                <td data-label="HSN Code">
                                     <input
                                         type="text"
                                         className="form-input small"
@@ -190,7 +190,7 @@ const InvoiceForm = ({ onSave, onCancel }) => {
                                         onChange={(e) => handleItemChange(item.id, 'hsn', e.target.value)}
                                     />
                                 </td>
-                                <td style={{ width: '100px' }}>
+                                <td data-label="Qty" style={{ width: '100px' }}>
                                     <input
                                         type="number"
                                         className="form-input small"
@@ -198,7 +198,7 @@ const InvoiceForm = ({ onSave, onCancel }) => {
                                         onChange={(e) => handleItemChange(item.id, 'qty', e.target.value)}
                                     />
                                 </td>
-                                <td style={{ width: '120px' }}>
+                                <td data-label="Rate" style={{ width: '120px' }}>
                                     <input
                                         type="number"
                                         step="0.01"
@@ -207,10 +207,10 @@ const InvoiceForm = ({ onSave, onCancel }) => {
                                         onChange={(e) => handleItemChange(item.id, 'rate', e.target.value)}
                                     />
                                 </td>
-                                <td style={{ width: '120px', fontWeight: '600' }}>
-                                    {item.amount}
+                                <td data-label="Amount" style={{ width: '120px', fontWeight: '600' }}>
+                                    <span>{item.amount}</span>
                                 </td>
-                                <td>
+                                <td data-label="Action">
                                     <button type="button" className="btn-danger" onClick={() => removeItem(item.id)}>
                                         <Trash2 size={14} />
                                     </button>
@@ -224,14 +224,14 @@ const InvoiceForm = ({ onSave, onCancel }) => {
                 </button>
             </div>
 
-            <div className="form-footer" style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                <div style={{ textAlign: 'right', marginRight: '2rem' }}>
+            <div className="form-footer" style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end', gap: '1rem' }}>
+                <div style={{ textAlign: 'right', marginRight: '2rem', marginBottom: '0' }}>
                     <p style={{ color: '#64748b' }}>CGST (6%): ₹{invoice.totalCGST}</p>
                     <p style={{ color: '#64748b' }}>SGST (6%): ₹{invoice.totalSGST}</p>
                     <h3 style={{ marginTop: '0.5rem' }}>Total: ₹{invoice.grandTotal}</h3>
                 </div>
                 <button type="button" className="btn-secondary" onClick={onCancel}>
-                    <X size={18} /> Cancel
+                    Cancel
                 </button>
                 <button type="submit" className="btn-primary">
                     <Save size={18} /> Save Invoice
