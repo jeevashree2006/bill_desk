@@ -102,7 +102,7 @@ const InvoicePreview = ({ invoice, autoDownload, onBack }) => {
                         {/* Header */}
                         <div className="header-section">
                             <h1 className="company-name">SMR FLYASH BRICKS</h1>
-                            <p className="company-details">2/96, Visaka Road, Manikanatham, Namakkal - 637207</p>
+                            <p className="company-details">2/253, Visaka Road, Manickanatham, Namakkal - 637207</p>
                             <div className="contact-gst">
                                 <span>Contact : 9361216511</span>
                                 <span>GST No : 33AJLPN2970J1ZX</span>
@@ -127,11 +127,11 @@ const InvoicePreview = ({ invoice, autoDownload, onBack }) => {
                             </div>
                             <div className="info-right">
                                 <div className="info-row bold-border-bottom">
-                                    <span className="info-label flex-2 align-center">Invoice No:</span>
+                                    <span className="info-label flex-2" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: '8px' }}>Invoice No:</span>
                                     <span className="info-value flex-1 align-center bold">{invoice.invoiceNo}</span>
                                 </div>
                                 <div className="info-row bold-border-bottom">
-                                    <span className="info-label flex-2 align-center">Date :</span>
+                                    <span className="info-label flex-2" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: '8px' }}>Date :</span>
                                     <span className="info-value flex-1 align-center bold">
                                         {new Date(invoice.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-')}
                                     </span>
@@ -143,7 +143,7 @@ const InvoicePreview = ({ invoice, autoDownload, onBack }) => {
                                         <p style={{ whiteSpace: 'pre-wrap', lineHeight: '1.4' }}>{invoice.shipTo}</p>
                                     </div>)}
                                 </div>
- 
+
                             </div>
                         </div>
 
