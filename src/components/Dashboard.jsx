@@ -1,7 +1,7 @@
 import React from 'react';
-import { Eye, Trash2, Calendar, User, Hash } from 'lucide-react';
+import { Eye, Trash2, Calendar, User, Edit2 } from 'lucide-react';
 
-const Dashboard = ({ invoices, onView, onDelete }) => {
+const Dashboard = ({ invoices, onView, onDelete, onEdit }) => {
     if (invoices.length === 0) {
         return (
             <div className="empty-state">
@@ -31,7 +31,9 @@ const Dashboard = ({ invoices, onView, onDelete }) => {
                             ₹{parseFloat(invoice.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </div>
                         <div className="icon-text" style={{ marginBottom: '0.75rem', color: '#475569' }}>
-                            <User size={16} color="#94a3b8" /> <span style={{ fontWeight: 500 }}>{invoice.billTo.name || 'No Name Provided'}</span>
+                            <User size={16} color="#94a3b8" /> <span style={{ fontWeight: 500 }}>
+                                {typeof invoice.billTo === 'object' ? invoice.billTo.name : (invoice.billTo || '').split('\n')[0] || 'No Name Provided'}
+                            </span>
                         </div>
                         <div className="icon-text muted" style={{ color: '#64748b' }}>
                             <Calendar size={16} color="#94a3b8" /> <span>{new Date(invoice.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
@@ -39,16 +41,28 @@ const Dashboard = ({ invoices, onView, onDelete }) => {
                     </div>
 
                     <div className="invoice-card-footer" style={{ marginTop: '1.5rem', borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <button
-                            className="btn-danger-ghost"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onDelete(invoice.id);
-                            }}
-                            title="Delete Invoice"
-                        >
-                            <Trash2 size={16} />
-                        </button>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button
+                                className="btn-danger-ghost"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onDelete(invoice.id);
+                                }}
+                                title="Delete Invoice"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                            <button
+                                className="btn-edit-ghost"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onEdit(invoice);
+                                }}
+                                title="Edit Invoice"
+                            >
+                                <Edit2 size={16} />
+                            </button>
+                        </div>
                         <span className="view-details-btn" style={{ color: '#2563eb', fontSize: '0.875rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.35rem', transition: 'gap 0.2s' }}>
                             View Details <Eye size={16} />
                         </span>
@@ -94,6 +108,22 @@ const Dashboard = ({ invoices, onView, onDelete }) => {
         .btn-danger-ghost:hover {
           background: #fee2e2;
           color: #ef4444;
+        }
+        .btn-edit-ghost {
+          background: transparent;
+          color: #94a3b8;
+          border: none;
+          padding: 0.5rem;
+          border-radius: 8px;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+        }
+        .btn-edit-ghost:hover {
+          background: #e0e7ff;
+          color: #3730a3;
         }
         .invoice-card:hover .view-details-btn {
           gap: 0.5rem;

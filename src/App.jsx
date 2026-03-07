@@ -41,7 +41,13 @@ function App() {
   const saveInvoice = async (invoiceData) => {
     try {
       await set(ref(db, 'invoices/' + invoiceData.id), invoiceData);
-      const newInvoices = [invoiceData, ...invoices];
+      let newInvoices;
+      if (invoices.some(inv => inv.id === invoiceData.id)) {
+        newInvoices = invoices.map(inv => inv.id === invoiceData.id ? invoiceData : inv);
+      } else {
+        newInvoices = [invoiceData, ...invoices];
+      }
+
       setInvoices(newInvoices);
       localStorage.setItem('invoices', JSON.stringify(newInvoices));
       setCurrentInvoice(invoiceData);
@@ -72,6 +78,12 @@ function App() {
   const handleViewInvoice = (invoice) => {
     setCurrentInvoice(invoice);
     setActiveTab('view');
+    setIsSidebarOpen(false);
+  };
+
+  const handleEditInvoice = (invoice) => {
+    setCurrentInvoice(invoice);
+    setActiveTab('edit');
     setIsSidebarOpen(false);
   };
 
@@ -106,7 +118,7 @@ function App() {
           <LayoutDashboard size={24} />
         </div>
         <header className="top-bar">
-          <h2>{activeTab === 'dashboard' ? 'Dashboard' : activeTab === 'create' ? 'Create Invoice' : 'Invoice Preview'}</h2>
+          <h2>{activeTab === 'dashboard' ? 'Dashboard' : (activeTab === 'create' ? 'Create Invoice' : (activeTab === 'edit' ? 'Edit Invoice' : 'Invoice Preview'))}</h2>
           {activeTab === 'dashboard' && (
             <button className="btn-primary" onClick={handleCreateNew}>
               <Plus size={18} /> Create New
@@ -119,11 +131,17 @@ function App() {
             <Dashboard
               invoices={invoices}
               onView={handleViewInvoice}
+              onEdit={handleEditInvoice}
               onDelete={deleteInvoice}
             />
           )}
-          {activeTab === 'create' && (
-            <InvoiceForm onSave={saveInvoice} onCancel={() => setActiveTab('dashboard')} />
+          {(activeTab === 'create' || activeTab === 'edit') && (
+            <InvoiceForm
+              key={activeTab === 'edit' ? `edit-${currentInvoice?.id}` : 'create'}
+              initialInvoice={activeTab === 'edit' ? currentInvoice : null}
+              onSave={saveInvoice}
+              onCancel={() => setActiveTab('dashboard')}
+            />
           )}
           {(activeTab === 'view' || activeTab === 'view_download') && (
             <div className="view-container">

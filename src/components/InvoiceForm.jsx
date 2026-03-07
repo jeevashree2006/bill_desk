@@ -1,24 +1,29 @@
 import React, { useState } from 'react';
 import { Plus, Trash2, Save, X } from 'lucide-react';
 
-const InvoiceForm = ({ onSave, onCancel }) => {
-    const [invoice, setInvoice] = useState({
-        id: Date.now().toString(),
-        invoiceNo: '',
-        date: new Date().toISOString().split('T')[0],
-        billTo: {
-            name: '',
-            address: '',
-            gst: ''
-        },
-        shipTo: '',
-        items: [
-            { id: '1', particulars: 'Bricks', hsn: '68159910', qty: 0, rate: 0, amount: 0 }
-        ],
-        totalAmount: 0,
-        totalCGST: 0,
-        totalSGST: 0,
-        grandTotal: 0
+const InvoiceForm = ({ onSave, onCancel, initialInvoice }) => {
+    const [invoice, setInvoice] = useState(() => {
+        if (initialInvoice) {
+            const inv = { ...initialInvoice };
+            if (typeof inv.billTo === 'object' && inv.billTo !== null) {
+                inv.billTo = [inv.billTo.name, inv.billTo.address, inv.billTo.gst ? `GST: ${inv.billTo.gst}` : ''].filter(Boolean).join('\n');
+            }
+            return inv;
+        }
+        return {
+            id: Date.now().toString(),
+            invoiceNo: '',
+            date: new Date().toISOString().split('T')[0],
+            billTo: '',
+            shipTo: '',
+            items: [
+                { id: '1', particulars: 'Bricks', hsn: '68159910', qty: 0, rate: 0, amount: 0 }
+            ],
+            totalAmount: 0,
+            totalCGST: 0,
+            totalSGST: 0,
+            grandTotal: 0
+        };
     });
 
     const handleChange = (e) => {
@@ -128,30 +133,12 @@ const InvoiceForm = ({ onSave, onCancel }) => {
             <div className="grid-2">
                 <div className="form-group">
                     <label className="form-label">Bill To (Customer Details)</label>
-                    <input
-                        type="text"
-                        name="billTo.name"
-                        className="form-input"
-                        placeholder="Name"
-                        value={invoice.billTo.name}
-                        onChange={handleChange}
-                        style={{ marginBottom: '0.5rem' }}
-                    />
                     <textarea
-                        name="billTo.address"
+                        name="billTo"
                         className="form-input"
-                        placeholder="Address"
-                        rows="3"
-                        value={invoice.billTo.address}
-                        onChange={handleChange}
-                        style={{ marginBottom: '0.5rem' }}
-                    />
-                    <input
-                        type="text"
-                        name="billTo.gst"
-                        className="form-input"
-                        placeholder="GST No"
-                        value={invoice.billTo.gst}
+                        placeholder="Customer Name&#10;Address&#10;GST No (Optional)"
+                        rows="7"
+                        value={invoice.billTo}
                         onChange={handleChange}
                     />
                 </div>
