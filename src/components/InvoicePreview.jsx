@@ -136,12 +136,14 @@ const InvoicePreview = ({ invoice, autoDownload, onBack }) => {
                                         {new Date(invoice.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-')}
                                     </span>
                                 </div>
+
                                 <div className="info-row" style={{ height: 'auto' }}>
-                                    <div className="ship-to">
+                                    {invoice.shipTo && (<div className="ship-to">
                                         <span className="info-label">Ship To :</span>
                                         <p style={{ whiteSpace: 'pre-wrap', lineHeight: '1.4' }}>{invoice.shipTo}</p>
-                                    </div>
+                                    </div>)}
                                 </div>
+ 
                             </div>
                         </div>
 

@@ -46,7 +46,9 @@ const Dashboard = ({ invoices, onView, onDelete, onEdit }) => {
                                 className="btn-danger-ghost"
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    onDelete(invoice.id);
+                                    if (window.confirm('Are you sure you want to delete this invoice?')) {
+                                        onDelete(invoice.id);
+                                    }
                                 }}
                                 title="Delete Invoice"
                             >

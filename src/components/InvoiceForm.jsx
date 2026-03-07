@@ -106,6 +106,17 @@ const InvoiceForm = ({ onSave, onCancel, initialInvoice }) => {
         <form className="form-card" onSubmit={handleSubmit}>
             <div className="grid-2">
                 <div className="form-group">
+                    <label className="form-label">Date</label>
+                    <input
+                        type="date"
+                        name="date"
+                        className="form-input"
+                        value={invoice.date}
+                        onChange={handleChange}
+                        required
+                    />
+                </div>
+                <div className="form-group">
                     <label className="form-label">Invoice Number</label>
                     <input
                         type="text"
@@ -115,17 +126,6 @@ const InvoiceForm = ({ onSave, onCancel, initialInvoice }) => {
                         onChange={handleChange}
                         required
                         placeholder="e.g. 395"
-                    />
-                </div>
-                <div className="form-group">
-                    <label className="form-label">Date</label>
-                    <input
-                        type="date"
-                        name="date"
-                        className="form-input"
-                        value={invoice.date}
-                        onChange={handleChange}
-                        required
                     />
                 </div>
             </div>
