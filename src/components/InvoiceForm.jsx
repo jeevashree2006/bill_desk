@@ -39,7 +39,11 @@ const InvoiceForm = ({ onSave, onCancel }) => {
             if (item.id === id) {
                 const updatedItem = { ...item, [field]: value };
                 if (field === 'qty' || field === 'rate') {
-                    updatedItem.amount = (updatedItem.qty * updatedItem.rate).toFixed(2);
+                    const qty = parseFloat(updatedItem.qty) || 0;
+                    const rate = parseFloat(updatedItem.rate) || 0;
+                    // Derive exclusive base value from inclusive rate
+                    const exclusiveAmount = (qty * rate * 100) / 112;
+                    updatedItem.amount = exclusiveAmount.toFixed(2);
                 }
                 return updatedItem;
             }
@@ -70,7 +74,13 @@ const InvoiceForm = ({ onSave, onCancel }) => {
         const totalAmount = items.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
         const cgst = totalAmount * 0.06;
         const sgst = totalAmount * 0.06;
-        const grandTotal = totalAmount + cgst + sgst;
+
+        // Use exact inclusive string to avoid rounding errors when displaying mathematically perfect total
+        const exactGrandTotal = items.reduce((sum, item) => {
+            const qty = parseFloat(item.qty) || 0;
+            const rate = parseFloat(item.rate) || 0;
+            return sum + (qty * rate);
+        }, 0);
 
         setInvoice(prev => ({
             ...prev,
@@ -78,7 +88,7 @@ const InvoiceForm = ({ onSave, onCancel }) => {
             totalAmount: totalAmount.toFixed(2),
             totalCGST: cgst.toFixed(2),
             totalSGST: sgst.toFixed(2),
-            grandTotal: Math.round(grandTotal).toFixed(2)
+            grandTotal: Math.round(exactGrandTotal).toFixed(2)
         }));
     };
 

@@ -9,6 +9,8 @@ const InvoicePreview = ({ invoice, autoDownload, onBack }) => {
         return window.innerWidth <= 768 ? Math.max(0.2, (window.innerWidth - 30) / 800) : 1;
     });
 
+    const containerRef = useRef();
+
     useEffect(() => {
         if (autoDownload && invoiceRef.current) {
             setTimeout(() => {
@@ -19,29 +21,35 @@ const InvoicePreview = ({ invoice, autoDownload, onBack }) => {
 
     const handleDownload = async () => {
         const element = invoiceRef.current;
-        const container = element.parentElement;
-        const originalZoom = container.style.getPropertyValue('--zoom');
+        const container = containerRef.current;
 
-        // Ensure PDF captures accurately without zoom distortions
-        container.style.setProperty('--zoom', '1');
-        await new Promise(resolve => setTimeout(resolve, 100)); // allow reflow
+        // Temporarily clear the scale visual wrapper so html2canvas doesn't get confused
+        const currentTransform = container.style.transform;
+        container.style.transform = 'scale(1)';
 
-        const canvas = await html2canvas(element, {
-            scale: 2,
-            logging: false,
-            useCORS: true
-        });
+        // Wait briefly for DOM to paint the unscaled version
+        await new Promise(resolve => setTimeout(resolve, 100));
 
-        // Restore zoom instantly
-        container.style.setProperty('--zoom', originalZoom);
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const imgProps = pdf.getImageProperties(imgData);
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+        try {
+            const canvas = await html2canvas(element, {
+                scale: 2,
+                logging: false,
+                useCORS: true,
+                windowWidth: 800 // force canvas width
+            });
 
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-        pdf.save(`Invoice_${invoice.invoiceNo}.pdf`);
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`Invoice_${invoice.invoiceNo}.pdf`);
+        } finally {
+            // Restore visual layout scaling no matter what
+            container.style.transform = currentTransform;
+        }
     };
 
     const numberToWords = (num) => {
@@ -88,134 +96,136 @@ const InvoicePreview = ({ invoice, autoDownload, onBack }) => {
                 </button>
             </div>
 
-            <div className="invoice-container" style={{ '--zoom': zoomLvl }}>
-                <div className="invoice-box">
-                    {/* Header */}
-                    <div className="header-section">
-                        <h1 className="company-name">SMR FLYASH BRICKS</h1>
-                        <p className="company-details">2/96, Visaka Road, Manikanatham, Namakkal - 637207</p>
-                        <div className="contact-gst">
-                            <span>Contact : 9361216511</span>
-                            <span>GST No : 33AJLPN2970J1ZX</span>
+            <div style={{ padding: '2px', overflow: 'auto', marginBottom: '2rem' }}>
+                <div ref={containerRef} style={{ transform: `scale(${zoomLvl})`, transformOrigin: 'top left', transition: 'transform 0.2s ease', margin: '0 auto', width: '800px' }}>
+                    <div className="invoice-box" ref={invoiceRef}>
+                        {/* Header */}
+                        <div className="header-section">
+                            <h1 className="company-name">SMR FLYASH BRICKS</h1>
+                            <p className="company-details">2/96, Visaka Road, Manikanatham, Namakkal - 637207</p>
+                            <div className="contact-gst">
+                                <span>Contact : 9361216511</span>
+                                <span>GST No : 33AJLPN2970J1ZX</span>
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Bill-to and Invoice Info */}
-                    <div className="info-section">
-                        <div className="info-left">
-                            <div className="info-label bold-border-bottom">Bill To :</div>
-                            <div className="info-content">
-                                <p className="bold">{invoice.billTo.name}</p>
-                                <p>{invoice.billTo.address}</p>
-                                {invoice.billTo.gst && <p>GST: {invoice.billTo.gst}</p>}
+                        {/* Bill-to and Invoice Info */}
+                        <div className="info-section">
+                            <div className="info-left">
+                                <div className="info-label bold-border-bottom">Bill To :</div>
+                                <div className="info-content">
+                                    <p className="bold">{invoice.billTo.name}</p>
+                                    <p>{invoice.billTo.address}</p>
+                                    {invoice.billTo.gst && <p>GST: {invoice.billTo.gst}</p>}
+                                </div>
                             </div>
-                        </div>
-                        <div className="info-right">
-                            <div className="info-row bold-border-bottom">
-                                <span className="info-label flex-2 align-center">Invoice No:</span>
-                                <span className="info-value flex-1 align-center bold">{invoice.invoiceNo}</span>
-                            </div>
-                            <div className="info-row bold-border-bottom">
-                                <span className="info-label flex-2 align-center">Date :</span>
-                                <span className="info-value flex-1 align-center bold">{invoice.date.split('-').reverse().join('-')}</span>
-                            </div>
-                            <div className="info-row" style={{ height: 'auto' }}>
-                                <div className="ship-to">
-                                    <span className="info-label">Ship To :</span>
-                                    <p>{invoice.shipTo}</p>
+                            <div className="info-right">
+                                <div className="info-row bold-border-bottom">
+                                    <span className="info-label flex-2 align-center">Invoice No:</span>
+                                    <span className="info-value flex-1 align-center bold">{invoice.invoiceNo}</span>
+                                </div>
+                                <div className="info-row bold-border-bottom">
+                                    <span className="info-label flex-2 align-center">Date :</span>
+                                    <span className="info-value flex-1 align-center bold">{invoice.date.split('-').reverse().join('-')}</span>
+                                </div>
+                                <div className="info-row" style={{ height: 'auto' }}>
+                                    <div className="ship-to">
+                                        <span className="info-label">Ship To :</span>
+                                        <p>{invoice.shipTo}</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Items Table */}
-                    <div className="items-section-pdf">
-                        <table className="pdf-table">
-                            <thead>
-                                <tr>
-                                    <th style={{ width: '8%' }}>S No</th>
-                                    <th style={{ width: '32%' }}>Particulars</th>
-                                    <th style={{ width: '15%' }}>HSN Code</th>
-                                    <th style={{ width: '15%' }}>Qty</th>
-                                    <th style={{ width: '15%' }}>Rate</th>
-                                    <th style={{ width: '15%' }}>Amount</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {invoice.items.map((item, index) => (
-                                    <tr key={index}>
-                                        <td className="center">{index + 1}</td>
-                                        <td>{item.particulars}</td>
-                                        <td className="center">{item.hsn}</td>
-                                        <td className="right">{parseFloat(item.qty).toLocaleString('en-IN')}</td>
-                                        <td className="right">
-                                            {item.rate}
-                                            <div className="gst-small">CGST @ 6%</div>
-                                            <div className="gst-small">SGST @ 6%</div>
-                                        </td>
-                                        <td className="right">
-                                            {parseFloat(item.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                            <div className="gst-small">{(item.amount * 0.06).toFixed(2)}</div>
-                                            <div className="gst-small">{(item.amount * 0.06).toFixed(2)}</div>
-                                        </td>
+                        {/* Items Table */}
+                        <div className="items-section-pdf">
+                            <table className="pdf-table">
+                                <thead>
+                                    <tr>
+                                        <th style={{ width: '8%' }}>S No</th>
+                                        <th style={{ width: '32%' }}>Particulars</th>
+                                        <th style={{ width: '15%' }}>HSN Code</th>
+                                        <th style={{ width: '15%' }}>Qty</th>
+                                        <th style={{ width: '15%' }}>Rate</th>
+                                        <th style={{ width: '15%' }}>Amount</th>
                                     </tr>
-                                ))}
-                                {/* Filler rows to manage height like the image */}
-                                <tr style={{ height: '100px' }}>
-                                    <td></td><td></td><td></td><td></td><td></td><td></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* Value and Words */}
-                    <div className="total-words-section">
-                        <div className="invoice-value-line bold-border-bottom">
-                            <span className="bold">INVOICE VALUE ____ {parseFloat(invoice.grandTotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                </thead>
+                                <tbody>
+                                    {invoice.items.map((item, index) => (
+                                        <tr key={index}>
+                                            <td className="center">{index + 1}</td>
+                                            <td>{item.particulars}</td>
+                                            <td className="center">{item.hsn}</td>
+                                            <td className="right">{parseFloat(item.qty).toLocaleString('en-IN')}</td>
+                                            <td className="right">
+                                                {((parseFloat(item.rate) * 100) / 112).toFixed(2)}
+                                                <div className="gst-small">CGST @ 6%</div>
+                                                <div className="gst-small">SGST @ 6%</div>
+                                            </td>
+                                            <td className="right">
+                                                {parseFloat(item.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                <div className="gst-small">{(item.amount * 0.06).toFixed(2)}</div>
+                                                <div className="gst-small">{(item.amount * 0.06).toFixed(2)}</div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {/* Filler rows to manage height like the image */}
+                                    <tr style={{ height: '100px' }}>
+                                        <td></td><td></td><td></td><td></td><td></td><td></td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
-                        <div className="words-line">
-                            <p className="bold">Total Amount In Words:</p>
-                            <p>{numberToWords(invoice.grandTotal)}</p>
+
+                        {/* Value and Words */}
+                        <div className="total-words-section">
+                            <div className="invoice-value-line bold-border-bottom">
+                                <span className="bold">INVOICE VALUE ____ {parseFloat(invoice.grandTotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                            </div>
+                            <div className="words-line">
+                                <p className="bold">Total Amount In Words:</p>
+                                <p>{numberToWords(invoice.grandTotal)}</p>
+                            </div>
                         </div>
-                    </div>
 
-                    {/* HSN Summary Table */}
-                    <div className="hsn-summary-section">
-                        <table className="hsn-table">
-                            <thead>
-                                <tr>
-                                    <th>HSN / SAC</th>
-                                    <th>GST Rate</th>
-                                    <th>Total Value</th>
-                                    <th>CGST</th>
-                                    <th>SGST</th>
-                                    <th>Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td className="center">{invoice.items[0]?.hsn}</td>
-                                    <td className="center">12%</td>
-                                    <td className="right">{parseFloat(invoice.totalAmount).toLocaleString('en-IN')}</td>
-                                    <td className="right">{Math.round(invoice.totalCGST).toLocaleString('en-IN')}</td>
-                                    <td className="right">{Math.round(invoice.totalSGST).toLocaleString('en-IN')}</td>
-                                    <td className="right">{parseFloat(invoice.grandTotal).toLocaleString('en-IN')}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* Spacer */}
-                    <div style={{ height: '100px', borderLeft: '1px solid black', borderRight: '1px solid black' }}></div>
-
-                    {/* Declaration and Signatory */}
-                    <div className="footer-pdf-section">
-                        <div className="declaration">
-                            <p className="bold">Declaration:</p>
-                            <p>We Declare that this Invoice show the actual Price of the goods described and that all particulars are true and correct</p>
+                        {/* HSN Summary Table */}
+                        <div className="hsn-summary-section">
+                            <table className="hsn-table">
+                                <thead>
+                                    <tr>
+                                        <th>HSN / SAC</th>
+                                        <th>GST Rate</th>
+                                        <th>Total Value</th>
+                                        <th>CGST</th>
+                                        <th>SGST</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td className="center">{invoice.items[0]?.hsn}</td>
+                                        <td className="center">12%</td>
+                                        <td className="right">{parseFloat(invoice.totalAmount).toLocaleString('en-IN')}</td>
+                                        <td className="right">{Math.round(invoice.totalCGST).toLocaleString('en-IN')}</td>
+                                        <td className="right">{Math.round(invoice.totalSGST).toLocaleString('en-IN')}</td>
+                                        <td className="right">{parseFloat(invoice.grandTotal).toLocaleString('en-IN')}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
-                        <div className="signatory">
-                            <p className="bold">Authorised Signatory For SMR Flysash Bricks</p>
+
+                        {/* Spacer */}
+                        <div style={{ height: '100px', borderLeft: '1px solid black', borderRight: '1px solid black' }}></div>
+
+                        {/* Declaration and Signatory */}
+                        <div className="footer-pdf-section">
+                            <div className="declaration">
+                                <p className="bold">Declaration:</p>
+                                <p>We Declare that this Invoice show the actual Price of the goods described and that all particulars are true and correct</p>
+                            </div>
+                            <div className="signatory">
+                                <p className="bold">Authorised Signatory For SMR Flysash Bricks</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -241,8 +251,7 @@ const InvoicePreview = ({ invoice, autoDownload, onBack }) => {
             font-family: 'Times New Roman', Times, serif;
             color: black;
             background: white;
-            zoom: var(--zoom, 1);
-            transition: zoom 0.2s ease;
+            box-sizing: border-box;
         }
         .header-section {
             text-align: center;
@@ -381,16 +390,6 @@ const InvoicePreview = ({ invoice, autoDownload, onBack }) => {
                 margin-bottom: 1rem;
                 gap: 15px;
                 flex-wrap: wrap;
-            }
-            .invoice-container {
-                padding: 2px;
-                display: block;
-                width: 100%;
-                overflow: auto;
-                margin-bottom: 2rem;
-            }
-            .invoice-box {
-                margin: 0 auto;
             }
         }
       `}</style>
