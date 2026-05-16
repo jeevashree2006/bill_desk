@@ -23,6 +23,11 @@ const InvoicePreview = ({ invoice, autoDownload, onBack }) => {
         const element = invoiceRef.current;
         const container = containerRef.current;
 
+        if (!element || !container) {
+            alert('Invoice is not ready yet. Please try again.');
+            return;
+        }
+
         // Temporarily clear the scale visual wrapper so html2canvas doesn't get confused
         const currentTransform = container.style.transform;
         container.style.transform = 'scale(1)';
@@ -45,7 +50,10 @@ const InvoicePreview = ({ invoice, autoDownload, onBack }) => {
             const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
             pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-            pdf.save(`Invoice_${invoice.invoiceNo}.pdf`);
+            pdf.save(`Invoice_${invoice.invoiceNo || 'draft'}.pdf`);
+        } catch (error) {
+            console.error('PDF download failed:', error);
+            alert('Failed to download PDF. Please try again.');
         } finally {
             // Restore visual layout scaling no matter what
             container.style.transform = currentTransform;
