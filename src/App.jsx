@@ -9,9 +9,12 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { db, auth } from './firebase';
 import './App.css';
 
+const DEV_BYPASS_AUTH = import.meta.env.DEV;
+const DEV_USER = { displayName: 'Dev User', email: 'dev@local', uid: 'dev-local', photoURL: null };
+
 function App() {
-  const [user, setUser] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  const [user, setUser] = useState(DEV_BYPASS_AUTH ? DEV_USER : null);
+  const [authLoading, setAuthLoading] = useState(!DEV_BYPASS_AUTH);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [invoices, setInvoices] = useState([]);
   const [currentInvoice, setCurrentInvoice] = useState(null);
@@ -20,6 +23,7 @@ function App() {
 
   // Listen to auth state changes
   useEffect(() => {
+    if (DEV_BYPASS_AUTH) return;
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setAuthLoading(false);
@@ -30,6 +34,12 @@ function App() {
   // Fetch invoices when user is authenticated
   useEffect(() => {
     if (!user) return;
+
+    if (DEV_BYPASS_AUTH) {
+      const savedInvoices = localStorage.getItem('invoices');
+      if (savedInvoices) setInvoices(JSON.parse(savedInvoices));
+      return;
+    }
 
     const fetchInvoices = async () => {
       try {
@@ -69,6 +79,8 @@ function App() {
     setActiveTab('view_download');
     setIsSidebarOpen(false);
 
+    if (DEV_BYPASS_AUTH) return;
+
     // Best-effort Firebase save
     try {
       await set(ref(db, 'invoices/' + invoiceData.id), invoiceData);
@@ -82,6 +94,8 @@ function App() {
     const newInvoices = invoices.filter(inv => inv.id !== id);
     setInvoices(newInvoices);
     localStorage.setItem('invoices', JSON.stringify(newInvoices));
+
+    if (DEV_BYPASS_AUTH) return;
 
     // Best-effort Firebase delete
     try {
