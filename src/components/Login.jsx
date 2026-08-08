@@ -18,6 +18,12 @@ const Login = () => {
                 setError('Sign-in was cancelled.');
             } else if (err.code === 'auth/unauthorized-domain') {
                 setError('This domain is not authorized. Add it in Firebase Console → Authentication → Settings → Authorized domains.');
+            } else if (err.code === 'auth/internal-error') {
+                // Firebase reports any failure to load apis.google.com / the auth
+                // iframe as "internal-error". Usually a blocked script or offline.
+                setError('Could not reach Google sign-in. Check that apis.google.com is not blocked by an ad blocker, extension, or network, then try again.');
+            } else if (err.code === 'auth/operation-not-allowed') {
+                setError('Google sign-in is not enabled. Turn it on in Firebase Console → Authentication → Sign-in method.');
             } else {
                 setError(err.message || 'Failed to sign in. Please try again.');
             }

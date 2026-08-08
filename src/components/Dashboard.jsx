@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Eye, Trash2, Calendar, User, Edit2 } from 'lucide-react';
+import ConfirmDialog from './ConfirmDialog';
 
 const Dashboard = ({ invoices, onView, onDelete, onEdit }) => {
+    const [pendingDelete, setPendingDelete] = useState(null);
+
     if (invoices.length === 0) {
         return (
             <div className="empty-state">
@@ -46,9 +49,7 @@ const Dashboard = ({ invoices, onView, onDelete, onEdit }) => {
                                 className="btn-danger-ghost"
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    if (window.confirm('Are you sure you want to delete this invoice?')) {
-                                        onDelete(invoice.id);
-                                    }
+                                    setPendingDelete(invoice);
                                 }}
                                 title="Delete Invoice"
                             >
@@ -71,6 +72,20 @@ const Dashboard = ({ invoices, onView, onDelete, onEdit }) => {
                     </div>
                 </div>
             ))}
+
+            <ConfirmDialog
+                open={pendingDelete !== null}
+                title="Delete this invoice?"
+                message={pendingDelete
+                    ? `Bill No ${pendingDelete.invoiceNo} will be permanently removed.`
+                    : ''}
+                confirmLabel="Delete"
+                onConfirm={() => {
+                    onDelete(pendingDelete.id);
+                    setPendingDelete(null);
+                }}
+                onCancel={() => setPendingDelete(null)}
+            />
 
             <style >{`
         .empty-state {
