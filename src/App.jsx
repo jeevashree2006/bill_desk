@@ -1,16 +1,63 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import InvoiceForm from './components/InvoiceForm';
 import InvoicePreview from './components/InvoicePreview';
 import Dashboard from './components/Dashboard';
+import People from './components/People';
+import Orders from './components/Orders';
+import Materials from './components/Materials';
+import Balance from './components/Balance';
 import Login from './components/Login';
-import { Plus, LayoutDashboard, FileText, LogOut } from 'lucide-react';
+import { Plus, LayoutDashboard, FileText, LogOut, Users, Package, Wallet } from 'lucide-react';
 import { ref, set, get, child, remove } from 'firebase/database';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { db, auth } from './firebase';
 import './App.css';
 
-const DEV_BYPASS_AUTH = import.meta.env.DEV;
+// Opt-in only: set localStorage.devBypassAuth = 'true' in the console to skip Google sign-in.
+const DEV_BYPASS_AUTH = import.meta.env.DEV && localStorage.getItem('devBypassAuth') === 'true';
 const DEV_USER = { displayName: 'Dev User', email: 'dev@local', uid: 'dev-local', photoURL: null };
+
+const TAB_TITLES = {
+  dashboard: 'Dashboard',
+  create: 'Create Invoice',
+  edit: 'Edit Invoice',
+  people: 'Engineers & Customers',
+  materials: 'Materials',
+  orders: 'Orders',
+  balance: 'Balance',
+  view: 'Invoice Preview',
+  view_download: 'Invoice Preview'
+};
+
+// Fixed list that always ships with the app — not editable or deletable.
+// Anything else the user needs is added on top via the Materials tab.
+const DEFAULT_MATERIALS = [
+  { id: 'mat-bricks', name: 'Bricks', unit: 'Piece', defaultRate: '', builtIn: true },
+  { id: 'mat-cement', name: 'Cement', unit: 'Bag', defaultRate: '', builtIn: true },
+  { id: 'mat-p-sand', name: 'P-Sand', unit: 'Unit', defaultRate: '', builtIn: true },
+  { id: 'mat-m-sand', name: 'M-Sand', unit: 'Unit', defaultRate: '', builtIn: true },
+  { id: 'mat-river-sand', name: 'River Sand', unit: 'Unit', defaultRate: '', builtIn: true },
+  { id: 'mat-jally-12', name: 'Jally 1/2"', unit: 'Unit', defaultRate: '', builtIn: true },
+  { id: 'mat-jally-34', name: 'Jally 3/4"', unit: 'Unit', defaultRate: '', builtIn: true },
+  { id: 'mat-jally-1', name: 'Jally 1"', unit: 'Unit', defaultRate: '', builtIn: true },
+  { id: 'mat-jally-112', name: 'Jally 1 1/2"', unit: 'Unit', defaultRate: '', builtIn: true },
+  { id: 'mat-chips-stone', name: 'Chips Stone', unit: 'Unit', defaultRate: '', builtIn: true }
+];
+
+const BUILT_IN_IDS = new Set(DEFAULT_MATERIALS.map(m => m.id));
+
+// Orders saved before materials existed carry only totalBricks / pricePerBrick.
+const normalizeOrder = (order) => {
+  if (order.quantity !== undefined) return order;
+  return {
+    ...order,
+    materialId: 'mat-bricks',
+    materialName: 'Bricks',
+    materialUnit: 'Piece',
+    quantity: Number(order.totalBricks || 0),
+    pricePerUnit: Number(order.pricePerBrick || 0)
+  };
+};
 
 function App() {
   const [user, setUser] = useState(DEV_BYPASS_AUTH ? DEV_USER : null);
@@ -18,6 +65,10 @@ function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [invoices, setInvoices] = useState([]);
   const [currentInvoice, setCurrentInvoice] = useState(null);
+  const [people, setPeople] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [customMaterials, setCustomMaterials] = useState([]);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -31,37 +82,80 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // Fetch invoices when user is authenticated
+  // Fetch data when user is authenticated
   useEffect(() => {
     if (!user) return;
 
+    const readLocal = (storageKey) => {
+      const saved = localStorage.getItem(storageKey);
+      if (!saved) return null;
+      try {
+        return JSON.parse(saved);
+      } catch {
+        console.warn(`Could not parse "${storageKey}" from local storage.`);
+        return null;
+      }
+    };
+
+    const loadLocal = (storageKey, setter, transform) => {
+      const records = readLocal(storageKey);
+      if (records) setter(transform ? records.map(transform) : records);
+    };
+
+    // Built-ins live in code, so only user-added materials are stored. Older
+    // saves kept copies of the built-ins — drop those so they can't duplicate.
+    const dropBuiltIns = (records) => records.filter(m => !BUILT_IN_IDS.has(m.id));
+    const applyCustomMaterials = (records) => setCustomMaterials(dropBuiltIns(records || []));
+
     if (DEV_BYPASS_AUTH) {
-      const savedInvoices = localStorage.getItem('invoices');
-      if (savedInvoices) setInvoices(JSON.parse(savedInvoices));
+      loadLocal('invoices', setInvoices);
+      loadLocal('people', setPeople);
+      loadLocal('brickOrders', setOrders, normalizeOrder);
+      loadLocal('payments', setPayments);
+      applyCustomMaterials(readLocal('materials'));
       return;
     }
 
-    const fetchInvoices = async () => {
+    const fetchCollection = async (path, storageKey, setter, sortBy, transform) => {
       try {
-        const dbRef = ref(db);
-        const snapshot = await get(child(dbRef, `invoices`));
+        const snapshot = await get(child(ref(db), path));
         if (snapshot.exists()) {
-          const invoicesData = Object.values(snapshot.val());
-          invoicesData.sort((a, b) => new Date(b.date) - new Date(a.date));
-          setInvoices(invoicesData);
+          let records = Object.values(snapshot.val());
+          if (transform) records = records.map(transform);
+          if (sortBy) records.sort(sortBy);
+          setter(records);
+          // Keep local storage warm so the app still works offline
+          localStorage.setItem(storageKey, JSON.stringify(records));
         } else {
-          setInvoices([]);
+          setter([]);
         }
       } catch (error) {
-        console.error("Error fetching invoices: ", error);
+        console.error(`Error fetching ${path}: `, error);
         // Fallback to local storage if fail just in case
-        const savedInvoices = localStorage.getItem('invoices');
-        if (savedInvoices) {
-          setInvoices(JSON.parse(savedInvoices));
-        }
+        loadLocal(storageKey, setter, transform);
       }
     };
-    fetchInvoices();
+
+    const fetchMaterials = async () => {
+      try {
+        const snapshot = await get(child(ref(db), 'materials'));
+        const records = snapshot.exists() ? dropBuiltIns(Object.values(snapshot.val())) : [];
+        applyCustomMaterials(records);
+        localStorage.setItem('materials', JSON.stringify(records));
+      } catch (error) {
+        console.error('Error fetching materials: ', error);
+        applyCustomMaterials(readLocal('materials'));
+      }
+    };
+
+    const byDateDesc = (a, b) => new Date(b.date) - new Date(a.date);
+    const byCreatedDesc = (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+
+    fetchCollection('invoices', 'invoices', setInvoices, byDateDesc);
+    fetchCollection('people', 'people', setPeople, byCreatedDesc);
+    fetchCollection('brickOrders', 'brickOrders', setOrders, byDateDesc, normalizeOrder);
+    fetchCollection('payments', 'payments', setPayments, byDateDesc);
+    fetchMaterials();
   }, [user]);
 
   const saveInvoice = async (invoiceData) => {
@@ -105,6 +199,75 @@ function App() {
     }
   };
 
+  // Shared local-first persistence for the people / brick-order collections:
+  // state and local storage update immediately, Firebase is best-effort.
+  const saveRecord = async (record, list, setList, storageKey, dbPath) => {
+    const next = list.some(r => r.id === record.id)
+      ? list.map(r => (r.id === record.id ? record : r))
+      : [record, ...list];
+
+    setList(next);
+    localStorage.setItem(storageKey, JSON.stringify(next));
+
+    if (DEV_BYPASS_AUTH) return;
+
+    try {
+      await set(ref(db, `${dbPath}/${record.id}`), record);
+    } catch (e) {
+      console.warn(`Firebase save failed for ${dbPath} (kept locally): `, e);
+    }
+  };
+
+  const deleteRecord = async (id, list, setList, storageKey, dbPath) => {
+    const next = list.filter(r => r.id !== id);
+
+    setList(next);
+    localStorage.setItem(storageKey, JSON.stringify(next));
+
+    if (DEV_BYPASS_AUTH) return;
+
+    try {
+      await remove(ref(db, `${dbPath}/${id}`));
+    } catch (e) {
+      console.warn(`Firebase delete failed for ${dbPath} (removed locally): `, e);
+    }
+  };
+
+  const savePerson = (person) => saveRecord(person, people, setPeople, 'people', 'people');
+  const deletePerson = (id) => deleteRecord(id, people, setPeople, 'people', 'people');
+  const saveOrder = (order) => saveRecord(order, orders, setOrders, 'brickOrders', 'brickOrders');
+  const deleteOrder = (id) => deleteRecord(id, orders, setOrders, 'brickOrders', 'brickOrders');
+  const savePayment = (payment) => saveRecord(payment, payments, setPayments, 'payments', 'payments');
+  const deletePayment = (id) => deleteRecord(id, payments, setPayments, 'payments', 'payments');
+  // Built-ins are fixed and always shown first; only custom materials persist.
+  const materials = useMemo(() => [...DEFAULT_MATERIALS, ...customMaterials], [customMaterials]);
+
+  const saveMaterial = (material) => {
+    if (BUILT_IN_IDS.has(material.id)) return;
+    return saveRecord(material, customMaterials, setCustomMaterials, 'materials', 'materials');
+  };
+
+  const deleteMaterial = (id) => {
+    if (BUILT_IN_IDS.has(id)) return;
+    return deleteRecord(id, customMaterials, setCustomMaterials, 'materials', 'materials');
+  };
+
+  // How many brick orders reference each person, for the People list + delete warning
+  const orderCounts = useMemo(() => {
+    return orders.reduce((counts, order) => {
+      if (order.personId) counts[order.personId] = (counts[order.personId] || 0) + 1;
+      return counts;
+    }, {});
+  }, [orders]);
+
+  // How many orders reference each material, for the Materials list + delete warning
+  const materialOrderCounts = useMemo(() => {
+    return orders.reduce((counts, order) => {
+      if (order.materialId) counts[order.materialId] = (counts[order.materialId] || 0) + 1;
+      return counts;
+    }, {});
+  }, [orders]);
+
   const handleCreateNew = () => {
     setCurrentInvoice(null);
     setActiveTab('create');
@@ -123,12 +286,27 @@ function App() {
     setIsSidebarOpen(false);
   };
 
+  const clearSessionData = () => {
+    setInvoices([]);
+    setPeople([]);
+    setOrders([]);
+    setPayments([]);
+    setCustomMaterials([]);
+    setCurrentInvoice(null);
+    setActiveTab('dashboard');
+  };
+
   const handleSignOut = async () => {
+    if (DEV_BYPASS_AUTH) {
+      localStorage.removeItem('devBypassAuth');
+      setUser(null);
+      clearSessionData();
+      return;
+    }
+
     try {
       await signOut(auth);
-      setInvoices([]);
-      setCurrentInvoice(null);
-      setActiveTab('dashboard');
+      clearSessionData();
     } catch (err) {
       console.error("Sign-out error:", err);
     }
@@ -191,6 +369,34 @@ function App() {
             <Plus size={20} />
             <span>New Invoice</span>
           </li>
+          <li
+            className={activeTab === 'people' ? 'active' : ''}
+            onClick={() => { setActiveTab('people'); setIsSidebarOpen(false); }}
+          >
+            <Users size={20} />
+            <span>People</span>
+          </li>
+          <li
+            className={activeTab === 'materials' ? 'active' : ''}
+            onClick={() => { setActiveTab('materials'); setIsSidebarOpen(false); }}
+          >
+            <Package size={20} />
+            <span>Materials</span>
+          </li>
+          <li
+            className={activeTab === 'orders' ? 'active' : ''}
+            onClick={() => { setActiveTab('orders'); setIsSidebarOpen(false); }}
+          >
+            <FileText size={20} />
+            <span>Orders</span>
+          </li>
+          <li
+            className={activeTab === 'balance' ? 'active' : ''}
+            onClick={() => { setActiveTab('balance'); setIsSidebarOpen(false); }}
+          >
+            <Wallet size={20} />
+            <span>Balance</span>
+          </li>
         </ul>
 
         {/* User info and sign out at the bottom of sidebar */}
@@ -219,7 +425,7 @@ function App() {
           <LayoutDashboard size={24} />
         </div>
         <header className="top-bar">
-          <h2>{activeTab === 'dashboard' ? 'Dashboard' : (activeTab === 'create' ? 'Create Invoice' : (activeTab === 'edit' ? 'Edit Invoice' : 'Invoice Preview'))}</h2>
+          <h2>{TAB_TITLES[activeTab] || 'Invoice Preview'}</h2>
           {activeTab === 'dashboard' && (
             <button className="btn-primary" onClick={handleCreateNew}>
               <Plus size={18} /> Create New
@@ -234,6 +440,41 @@ function App() {
               onView={handleViewInvoice}
               onEdit={handleEditInvoice}
               onDelete={deleteInvoice}
+            />
+          )}
+          {activeTab === 'people' && (
+            <People
+              people={people}
+              onSave={savePerson}
+              onDelete={deletePerson}
+              orderCounts={orderCounts}
+            />
+          )}
+          {activeTab === 'materials' && (
+            <Materials
+              materials={materials}
+              onSave={saveMaterial}
+              onDelete={deleteMaterial}
+              orderCounts={materialOrderCounts}
+            />
+          )}
+          {activeTab === 'orders' && (
+            <Orders
+              orders={orders}
+              people={people}
+              materials={materials}
+              onSave={saveOrder}
+              onDelete={deleteOrder}
+              onGoToPeople={() => setActiveTab('people')}
+            />
+          )}
+          {activeTab === 'balance' && (
+            <Balance
+              orders={orders}
+              payments={payments}
+              people={people}
+              onSavePayment={savePayment}
+              onDeletePayment={deletePayment}
             />
           )}
           {(activeTab === 'create' || activeTab === 'edit') && (
